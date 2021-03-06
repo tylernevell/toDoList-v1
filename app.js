@@ -1,10 +1,11 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const date = require(__dirname + "/date.js");
 
 const app = express();
 
-let items = [];
-let workItems = [];
+const items = [];
+const workItems = [];
 app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({extended:true}));
@@ -14,17 +15,7 @@ app.use(express.static("public"));
 // HOME ROUTE //
 ///////////////
 app.get("/", (req, res) => {
-
-    let today = new Date();
-
-    let options = {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-    };
-
-    let day = today.toLocaleDateString("en-US", options);
-
+    const day = date.getDate();
     res.render("list", {listTitle: day, newListItems: items});
 });
 
@@ -43,15 +34,9 @@ app.get("/about", (req, res) => {
     res.render("about");
 })
 
-// app.post("/work", (req, res) => {
-//
-//     workItems.push(item);
-//     res.redirect("/work");
-// });
-
 app.post("/", (req, res) => {
 
-    let item = req.body.newItem;
+    const item = req.body.newItem;
 
     if (req.body.list === "Work") {
         workItems.push(item);
@@ -60,7 +45,7 @@ app.post("/", (req, res) => {
         items.push(item);
         res.redirect("/");
     }
-    // form makes a post request to home route
+    // html form makes a post request to home route
     // and it's going to POST the value of newItem
     // when request is received it gets caught in this
     // app.post section
