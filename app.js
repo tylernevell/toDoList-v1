@@ -4,11 +4,15 @@ const bodyParser = require("body-parser");
 const app = express();
 
 let items = [];
-
+let workItems = [];
 app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({extended:true}));
+app.use(express.static("public"));
 
+/////////////////
+// HOME ROUTE //
+///////////////
 app.get("/", (req, res) => {
 
     let today = new Date();
@@ -21,11 +25,41 @@ app.get("/", (req, res) => {
 
     let day = today.toLocaleDateString("en-US", options);
 
-    res.render("list", {kindOfDay: day, newListItems: items});
+    res.render("list", {listTitle: day, newListItems: items});
 });
+
+/////////////////
+// WORK ROUTE //
+///////////////
+app.get("/work", (req, res) => {
+    res.render("list", {listTitle: "Work List", newListItems: workItems});
+});
+
+
+//////////////////
+// ABOUT ROUTE //
+////////////////
+app.get("/about", (req, res) => {
+    res.render("about");
+})
+
+// app.post("/work", (req, res) => {
+//
+//     workItems.push(item);
+//     res.redirect("/work");
+// });
 
 app.post("/", (req, res) => {
 
+    let item = req.body.newItem;
+
+    if (req.body.list === "Work") {
+        workItems.push(item);
+        res.redirect("/work");
+    } else {
+        items.push(item);
+        res.redirect("/");
+    }
     // form makes a post request to home route
     // and it's going to POST the value of newItem
     // when request is received it gets caught in this
@@ -34,8 +68,8 @@ app.post("/", (req, res) => {
     // when a post is triggered on home route, value of newItem
     // saved to variable item and it will redirect to home route
     // and triggers app.get and render kindOfDay and newListItem
-    items.push(req.body.newItem);
-    res.redirect("/");
+
+
 });
 
 app.listen(3000, () => {
