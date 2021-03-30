@@ -8,6 +8,9 @@
   },
   "author": "Tyler Nevell <tylernevell@gmail.com> (https://www.tylernevell.com/)",
   "license": "MIT",
+  "engines": {
+    "node": "15.6.0"
+  },
   "dependencies": {
     "body-parser": "^1.19.0",
     "ejs": "^3.1.6",
