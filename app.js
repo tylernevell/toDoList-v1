@@ -10,13 +10,24 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.static("public"));
 
-mongoose.connect("mongodb+srv://n3vdawg:" + process.env.MONGO_PASSWORD + "@fruitcluster.3zp30.mongodb.net/toDoListDB?retryWrites=true&w=majority", {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect("mongodb+srv://n3vdawg:" + process.env.MONGO_PASSWORD + "@fruitcluster.3zp30.mongodb.net/toDoListDB?retryWrites=true&w=majority", {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false});
 
-// Data Schema
+//////////////////
+// DATA SCHEMA //
+////////////////
 const itemSchema = new mongoose.Schema({
     name: String
 });
 
+const listSchema = new mongoose.Schema({
+    name: String,
+    items: [itemSchema]
+});
+
+/////////////
+// MODELS //
+////////////
+const List = mongoose.model("List", listSchema);
 const Item = mongoose.model("Item", itemSchema);
 
 ///////////////////
@@ -36,9 +47,14 @@ const item3 = new Item({
 
 const defaultItems = [item1, item2, item3];
 
-/////////////////
+
 // HOME ROUTE //
-///////////////
+/*
+* This route is retrieved upon a user visiting the homepage of this webapp.
+* In this method call, a callback function is called to find the list of items
+* stored in the to do list collection. If to do list is empty, to do list is
+* populated by the default items; the instructions.
+* */
 app.get("/", (req, res) => {
     // const day = date.getDate();
     Item.find({}, (err, foundItems) => {
@@ -46,23 +62,44 @@ app.get("/", (req, res) => {
             Item.insertMany(defaultItems, (err) => {
                 if (err) {
                     console.log(err);
-                } else {
-                    console.log("Success.");
                 }
             });
+            res.redirect("/");
         } else {
             res.render("list", {listTitle: "Today", newListItems: foundItems});
+        }
+    });
+});
+
+
+// CUSTOM LIST ROUTE //
+app.get("/:customListName", (req, res) => {
+    const customListName = req.params.customListName;
+
+    List.findOne({name: customListName}, (err, foundList) => {
+        if (err) {
+            console.log(err);
+        } else {
+            if (!foundList) {
+                // Create a new list
+                const list  = new List({
+                    name: customListName,
+                    items: defaultItems
+                });
+                list.save();
+                res.redirect("/" + customListName);
+            } else {
+                // Show existing list
+                res.render("list", {listTitle: foundList.name, newListItems: foundList.items})
+            }
         }
     });
 
 });
 
-/////////////////
-// WORK ROUTE //
-///////////////
-app.get("/work", (req, res) => {
-    res.render("list", {listTitle: "Work List", newListItems: workItems});
-});
+// app.get("/work", (req, res) => {
+//     res.render("list", {listTitle: "Work List", newListItems: workItems});
+// });
 
 
 //////////////////
@@ -72,17 +109,37 @@ app.get("/about", (req, res) => {
     res.render("about");
 })
 
+////////////////////
+// POST NEW ITEM //
+//////////////////
 app.post("/", (req, res) => {
 
-    const item = req.body.newItem;
+    const itemName = req.body.newItem;
+    const listName = req.body.list;
 
-    if (req.body.list === "Work") {
-        workItems.push(item);
-        res.redirect("/work");
+    const item = new Item({
+        name: itemName
+    });
+
+    if (listName === "Today") {
+        item.save();
+        res.redirect("/") // after saving item, reenter home route and find all items to render on screen
     } else {
-        items.push(item);
-        res.redirect("/");
+        List.findOne({name: listName}, (err, foundList) => {
+            foundList.items.push(item);
+            foundList.save();
+            res.redirect("/" + listName);
+        });
     }
+
+
+    // if (req.body.list === "Work") {
+    //     workItems.push(item);
+    //     res.redirect("/work");
+    // } else {
+    //     items.push(item);
+    //     res.redirect("/");
+    // }
     // html form makes a post request to home route
     // and it's going to POST the value of newItem
     // when request is received it gets caught in this
@@ -91,9 +148,23 @@ app.post("/", (req, res) => {
     // when a post is triggered on home route, value of newItem
     // saved to variable item and it will redirect to home route
     // and triggers app.get and render kindOfDay and newListItem
-
-
 });
+
+///////////////////
+// DELETE ROUTE //
+/////////////////
+app.post("/delete", (req, res) => {
+    const checkedItemId = req.body.checkbox;
+
+    Item.findByIdAndRemove(checkedItemId, (err) => {
+        if (err) {
+            console.log(err);
+        } else {
+            res.redirect("/");
+        }
+    });
+});
+
 
 app.listen(3000, () => {
     console.log("Server started on port 3000");
